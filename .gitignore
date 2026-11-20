@@ -2,3 +2,10 @@
 results/
 reports/
 summary*.json
+
+# Local environment overrides (see .env.example). Never commit real values.
+.env
+
+# Dependencies, if any are ever added. k6 itself needs none: it runs
+# the .js files directly with no npm install.
+node_modules/
