@@ -25,6 +25,14 @@ export const THRESHOLDS = {
     http_req_failed: ['rate<0.05'],
     checks: ['rate>0.95'],
   },
+  // Breakpoint limits are the loosest: the test is *meant* to push
+  // past them. When a threshold fails, note the VU level at the time;
+  // that is the finding, not a broken script.
+  breakpoint: {
+    http_req_duration: ['p(95)<3000'],
+    http_req_failed: ['rate<0.15'],
+    checks: ['rate>0.85'],
+  },
 };
 
 // Per-check response-time limits (ms) used inside check() calls.
@@ -36,4 +44,5 @@ export const CHECK_MAX_MS = {
   stress: 1500,
   spike: 2000,
   soak: 800,
+  breakpoint: 3000,
 };

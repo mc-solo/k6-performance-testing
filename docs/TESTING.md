@@ -13,6 +13,7 @@ the load is kept light on purpose because these are shared demo APIs.
 | `scripts/stress-test.js` | Ramps 10 → 25 → 50 → 100 VUs, then back to 0 (about 2 minutes). Finds where response time and errors start to grow. |
 | `scripts/spike-test.js` | Sudden jump 5 → 50 VUs, hold, then back down (about 1 minute 20 seconds). Checks how the API handles a burst. |
 | `scripts/soak-test.js` | Steady low load, 10 VUs for 5 minutes. Catches slow problems (memory leaks, degrading response times) that only show up over time. Shortened from a real soak; see below. |
+| `scripts/breakpoint-test.js` | Ramps 5 → 10 → 25 → 50 → 100 → 150 → 200 VUs, then back to 0 (about 4 minutes). Finds the breaking point: the VU level where errors or p95 first jump past the threshold. |
 
 Endpoints used: `GET /posts`, `GET /posts/1`, `POST /posts`,
 `GET /users` on JSONPlaceholder, and `GET /get`, `GET /status/200`,
@@ -32,6 +33,7 @@ times are expected to grow under heavy load.
 | Stress | < 1500 ms | < 10% | > 90% |
 | Spike | < 2000 ms | < 10% | > 90% |
 | Soak | < 800 ms | < 5% | > 95% |
+| Breakpoint | < 3000 ms | < 15% | > 85% |
 
 ## How to run
 
@@ -43,6 +45,22 @@ k6 run scripts/load-test.js
 k6 run scripts/stress-test.js
 k6 run scripts/spike-test.js
 k6 run scripts/soak-test.js
+k6 run scripts/breakpoint-test.js
+```
+
+Breakpoint run with saved results and an HTML report:
+
+```bash
+./scripts/run-breakpoint.sh
+```
+
+That writes `results/breakpoint-summary.json`,
+`results/breakpoint-results.json` and `results/breakpoint-report.html`
+(`results/` is git-ignored). Open the HTML report to see p95, failed
+rate, checks rate and the per-check breakdown; the breaking point is
+the VU level where p95 or the failed rate first crosses its limit.
+Watch the terminal during the run to see which stage that was, the
+summary JSON alone does not record the VU level per stage.
 ```
 
 Smoke run before a full run:
@@ -112,4 +130,6 @@ no script has been run yet and no results are claimed anywhere in this
 repo. The scripts were syntax-checked only. Run
 `k6 run --vus 2 --duration 10s scripts/load-test.js` after installing
 k6 and record the real result in the README before claiming anything
-on a CV.
+on a CV. The breakpoint script is in the same state: written and
+syntax-checked only, never run, so no breaking point has been found
+yet.

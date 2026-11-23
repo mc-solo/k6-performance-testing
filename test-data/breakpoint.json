@@ -1,0 +1,1 @@
+{"minPostsInList":1,"notes":["Breakpoint probe values only. VU steps, durations and thresholds live in config/scenarios.js and config/thresholds.js.","The probe post must exist (id 1) and the posts list must not be empty; anything else is a real failure, not load noise."],"probePostId":1}

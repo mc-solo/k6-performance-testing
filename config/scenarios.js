@@ -31,6 +31,22 @@ export const SCENARIOS = {
     vus: 10,
     duration: '5m',
   },
+  // Breakpoint: keep adding VUs in steps until the API starts failing
+  // or slows past the threshold. The step where errors or p95 jump is
+  // the breaking point. Kept to 200 VUs max: these are shared demo
+  // APIs, not a load target owned by this project.
+  breakpoint: {
+    stages: [
+      { duration: '30s', target: 5 },
+      { duration: '30s', target: 10 },
+      { duration: '30s', target: 25 },
+      { duration: '30s', target: 50 },
+      { duration: '30s', target: 100 },
+      { duration: '30s', target: 150 },
+      { duration: '30s', target: 200 },
+      { duration: '30s', target: 0 },
+    ],
+  },
 };
 
 // Full soak duration for a real run. The script runs shortened (5m)
@@ -46,4 +62,5 @@ export const SLEEP_SECONDS = {
   stress: 1,
   spike: 1,
   soak: 2,
+  breakpoint: 1,
 };

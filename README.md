@@ -14,7 +14,7 @@ real thresholds, no invented results.
 k6-performance-testing/
 ├── config/          # Base URLs (environments.js), load shapes (scenarios.js), thresholds (thresholds.js)
 ├── test-data/       # Request payloads and expected values (JSON)
-├── scripts/         # load-test.js, stress-test.js, spike-test.js, soak-test.js
+├── scripts/         # load-test.js, stress-test.js, spike-test.js, soak-test.js, breakpoint-test.js, run-breakpoint.sh, breakpoint-report.js
 ├── lib/             # Shared helpers (common.js)
 ├── docs/            # SETUP.md, TESTING.md
 ├── results/         # k6 run outputs (git-ignored)
@@ -35,6 +35,7 @@ flow and how to add a new test.
 | `scripts/stress-test.js` | Ramps 10 → 25 → 50 → 100 VUs, then back to 0 (about 2 minutes) |
 | `scripts/spike-test.js` | Sudden jump 5 → 50 VUs, hold, then back down (about 1 minute 20 seconds) |
 | `scripts/soak-test.js` | Steady low load, 10 VUs for 5 minutes (shortened, see below) |
+| `scripts/breakpoint-test.js` | Ramps 5 → 200 VUs in steps, then back to 0 (about 4 minutes); finds the breaking point |
 | `lib/common.js` | Shared helpers: `GET /posts/1` and `GET /users` checks, POST payload builder. Imports config and test-data. |
 
 Endpoints used: `GET /posts`, `GET /posts/1`, `POST /posts`, `GET /users`
@@ -52,6 +53,7 @@ not results.
 | Stress | < 1500 ms | < 10% | > 90% |
 | Spike | < 2000 ms | < 10% | > 90% |
 | Soak | < 800 ms | < 5% | > 95% |
+| Breakpoint | < 3000 ms | < 15% | > 85% |
 
 The stress and spike limits are looser because response times are
 expected to grow under heavy load; the point of those tests is to see
@@ -74,6 +76,13 @@ k6 run scripts/load-test.js
 k6 run scripts/stress-test.js
 k6 run scripts/spike-test.js
 k6 run scripts/soak-test.js
+k6 run scripts/breakpoint-test.js
+```
+
+Breakpoint run with saved results and an HTML report:
+
+```bash
+./scripts/run-breakpoint.sh
 ```
 
 Short smoke run of any script (overrides the VUs and duration):
@@ -114,7 +123,9 @@ it when the target can be left alone.
   `scripts/*.js` files, and both `test-data/*.json` files parse as
   valid JSON. (k6's own `__ENV`, `open()` and `k6/*` imports are
   runtime globals/modules, so a Node syntax check cannot execute them;
-  it only proves the files parse.)
+  it only proves the files parse.) The breakpoint script was not run
+  either, so no breaking point has been found yet; `scripts/run-breakpoint.sh`
+  saves the summary and builds the HTML report when it is run.
 - Run `k6 run --vus 2 --duration 10s scripts/load-test.js` after
   installing k6 and record the real result here before claiming
   anything on a CV.
