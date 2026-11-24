@@ -1,5 +1,19 @@
 # Architecture
 
+## Diagram
+
+```mermaid
+flowchart LR
+    ENV[.env] --> CFG[config/]
+    CFG --> SCR[scripts/]
+    TD[test-data/] --> SCR
+    SCR --> K6[k6 run]
+    K6 --> RES[results/]
+    RES --> REP[breakpoint-report.html]
+    RES --> CMP[compare-results.js]
+    CMP --> TREND[trend report]
+```
+
 ## Folder tree
 
 ```text

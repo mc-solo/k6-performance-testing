@@ -14,7 +14,7 @@ real thresholds, no invented results.
 k6-performance-testing/
 ├── config/          # Base URLs (environments.js), load shapes (scenarios.js), thresholds (thresholds.js)
 ├── test-data/       # Request payloads and expected values (JSON)
-├── scripts/         # load-test.js, stress-test.js, spike-test.js, soak-test.js, breakpoint-test.js, run-breakpoint.sh, breakpoint-report.js
+├── scripts/         # load-test.js, stress-test.js, spike-test.js, soak-test.js, breakpoint-test.js, run-breakpoint.sh, breakpoint-report.js, compare-results.js
 ├── lib/             # Shared helpers (common.js)
 ├── docs/            # SETUP.md, TESTING.md
 ├── results/         # k6 run outputs (git-ignored)
@@ -36,6 +36,7 @@ flow and how to add a new test.
 | `scripts/spike-test.js` | Sudden jump 5 → 50 VUs, hold, then back down (about 1 minute 20 seconds) |
 | `scripts/soak-test.js` | Steady low load, 10 VUs for 5 minutes (shortened, see below) |
 | `scripts/breakpoint-test.js` | Ramps 5 → 200 VUs in steps, then back to 0 (about 4 minutes); finds the breaking point |
+| `scripts/compare-results.js` | Node script (no k6 needed): compares two k6 summary JSON files and prints the trend for p95, avg, max, error rate and checks pass rate, plus a PASS/FAIL verdict for each run against the thresholds in `config/thresholds.js` |
 | `lib/common.js` | Shared helpers: `GET /posts/1` and `GET /users` checks, POST payload builder. Imports config and test-data. |
 
 Endpoints used: `GET /posts`, `GET /posts/1`, `POST /posts`, `GET /users`
@@ -99,6 +100,25 @@ k6 run --summary-export results/load-summary.json scripts/load-test.js
 
 The `results/` folder is git-ignored, so run outputs stay local.
 
+Compare two runs of the same scenario to see the trend (details in
+[docs/TESTING.md](docs/TESTING.md)):
+
+```bash
+k6 run --summary-export results/load-run1.json scripts/load-test.js
+k6 run --summary-export results/load-run2.json scripts/load-test.js
+node scripts/compare-results.js results/load-run1.json results/load-run2.json load
+```
+
+The third argument is the scenario name (`load` by default) and picks
+which thresholds from `config/thresholds.js` the runs are checked
+against. It exits 0 when the current run passes every threshold, 1
+when it fails at least one. Try it without a k6 run, using the sample
+fixtures in `test-data/` (marked as sample data in the files):
+
+```bash
+node scripts/compare-results.js test-data/compare-sample-a.json test-data/compare-sample-b.json load
+```
+
 You can point the scripts at a different base URL without editing them:
 
 ```bash
@@ -126,6 +146,27 @@ it when the target can be left alone.
   it only proves the files parse.) The breakpoint script was not run
   either, so no breaking point has been found yet; `scripts/run-breakpoint.sh`
   saves the summary and builds the HTML report when it is run.
+- `scripts/compare-results.js` is a plain Node script, so it could be
+  checked for real: `node --check` passes, and it runs against the
+  sample fixtures in `test-data/` (sample data only, not real runs).
+  The demo comparison reports 3 metrics improved, 1 worsened
+  (p95, 620.15 ms to 690.4 ms, still under the 800 ms load limit)
+  and 1 unchanged, with both sample runs passing the load thresholds.
+  No real k6 run has been compared yet.
 - Run `k6 run --vus 2 --duration 10s scripts/load-test.js` after
   installing k6 and record the real result here before claiming
   anything on a CV.
+
+## Diagram
+
+```mermaid
+flowchart LR
+    ENV[.env] --> CFG[config/]
+    CFG --> SCR[scripts/]
+    TD[test-data/] --> SCR
+    SCR --> K6[k6 run]
+    K6 --> RES[results/]
+    RES --> REP[breakpoint-report.html]
+    RES --> CMP[compare-results.js]
+    CMP --> TREND[trend report]
+```

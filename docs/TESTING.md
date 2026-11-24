@@ -102,6 +102,62 @@ k6 run --summary-export results/load-summary.json scripts/load-test.js
 `metrics.checks.values.rate`) plus a per-check breakdown under
 `root_group.checks`.
 
+## Comparing two runs (trend)
+
+`scripts/compare-results.js` is a plain Node script (no k6 needed).
+It takes two `--summary-export` JSON files and prints a readable
+trend comparison, so a change between two runs of the same scenario
+is visible at a glance instead of diffing two JSON files by hand:
+
+```bash
+node scripts/compare-results.js results/load-run1.json results/load-run2.json load
+```
+
+The third argument is the scenario name and defaults to `load`. It
+picks which entry of `config/thresholds.js` the runs are checked
+against; no threshold is hard-coded in the script. The first file is
+the baseline, the second is the current run: swap them and every
+trend flips.
+
+For each of p95, avg and max response time, error rate and checks
+pass rate, the table shows both values, the change in absolute and
+percentage terms, and a trend: `improved`, `worsened` or `unchanged`.
+Lower is better for response times and error rate, higher is better
+for the checks pass rate. `unchanged` means the change is inside a
+small comparison tolerance (1% for durations, 0.05 percentage points
+for rates), so tiny run-to-run noise is not reported as a trend. That
+tolerance is not a threshold: the SLA limits always come from
+`config/thresholds.js`.
+
+Below the table, each run gets its own PASS/FAIL verdict against the
+scenario thresholds (p95, failed rate, checks rate). The verdict is
+judged on the run's own values, not on the trend: a run can improve
+and still fail, or worsen and still pass. Any other metric present in
+both files is compared too, in the "Other metrics" section, which is
+how custom metrics are covered: a custom Trend metric (for example
+one added with `new Trend(...)`) shows its avg, p95 and max trend,
+and a custom Rate metric shows its rate trend. Counters such as
+`iterations` are skipped, because a count difference is expected
+between runs of different lengths.
+
+Exit codes: 0 when the current run passes every threshold for the
+scenario, 1 when it fails at least one (or a file or threshold could
+not be read), 2 for wrong usage. So it can gate a CI step: a failing
+current run fails the command.
+
+Demo it without a k6 run, using the sample fixtures in `test-data/`
+(`compare-sample-a.json` and `compare-sample-b.json`, both marked as
+sample data in the files; the numbers are invented, the shape mirrors
+a real `--summary-export` file for the load scenario):
+
+```bash
+node scripts/compare-results.js test-data/compare-sample-a.json test-data/compare-sample-b.json load
+```
+
+The demo reports 3 metrics improved, 1 worsened (p95, 620.15 ms to
+690.4 ms, still under the 800 ms load limit) and 1 unchanged, with
+both sample runs passing the load thresholds.
+
 ### What a failure means
 
 - **p95 over the limit, checks passing:** the API answers correctly
